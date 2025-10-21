@@ -1,0 +1,32 @@
+{
+  "articles": [
+    {
+      "topic": "Managing Multiple Client Websites for Political Consultants",
+      "slug": "managing-multiple-client-websites-political-consultants",
+      "segment": "Consultants",
+      "funnel_stage": "Middle",
+      "generated_date": "2025-10-21",
+      "status": "draft",
+      "file": "drafts/generated-article-20251021-173647.md",
+      "word_count": 0,
+      "notes": "Review needed - first generation"
+    },
+    {
+      "topic": "Complete Guide: How Political Consultants Manage Multiple Client Websites",
+      "slug": "political-consultants-manage-multiple-client-websites",
+      "segment": "Consultants",
+      "funnel_stage": "Middle",
+      "generated_date": "2025-10-21",
+      "status": "draft",
+      "file": "drafts/generated-article-20251021-174129.md",
+      "word_count": 2800,
+      "notes": "Duplicate of previous - same topic"
+    }
+  ],
+  "metadata": {
+    "last_updated": "2025-10-21",
+    "total_generated": 2,
+    "total_approved": 0,
+    "total_published": 0
+  }
+}

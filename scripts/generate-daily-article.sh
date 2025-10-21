@@ -36,9 +36,33 @@ SUBJECT_SELECTION=$(cat "$PROJECT_DIR/content-subject-selection-methodology.md")
 FACTS_REFERENCE=$(cat "$PROJECT_DIR/votegtr-facts-accuracy-reference.md")
 RANK_MATH=$(cat "$PROJECT_DIR/rank-math-scoring-checklist.md")
 
+# Read tracking file to get already-generated topics
+TRACKING_FILE="$PROJECT_DIR/generated-articles.json"
+if [ -f "$TRACKING_FILE" ]; then
+    echo -e "${YELLOW}Checking previously generated articles...${NC}"
+    GENERATED_TOPICS=$(jq -r '.articles[] | select(.status == "approved" or .status == "published") | "- \(.topic) (\(.segment), \(.generated_date))"' "$TRACKING_FILE")
+    if [ -n "$GENERATED_TOPICS" ]; then
+        echo -e "${YELLOW}Found $(echo "$GENERATED_TOPICS" | wc -l | tr -d ' ') already-generated topics to avoid${NC}"
+    fi
+else
+    GENERATED_TOPICS=""
+    echo -e "${YELLOW}No tracking file found - this will be the first tracked article${NC}"
+fi
+
 echo -e "${YELLOW}Calling Claude API to generate article...${NC}"
 
 # Build the prompt content
+if [ -n "$GENERATED_TOPICS" ]; then
+    EXCLUSION_LIST="
+
+IMPORTANT: The following articles have already been generated and approved. DO NOT generate articles on these topics:
+$GENERATED_TOPICS
+
+Choose a DIFFERENT topic from the content gap analysis."
+else
+    EXCLUSION_LIST=""
+fi
+
 PROMPT="You are generating a new article for VOTEGTR.com following the established content workflow.
 
 Your task:
@@ -48,6 +72,7 @@ Your task:
 4. Include proper frontmatter with metadata in YAML format
 5. Ensure the article meets ALL SEO requirements from seo-writing-guidelines.md
 6. Use specific examples and demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness)
+$EXCLUSION_LIST
 
 === CONTENT GAP ANALYSIS ===
 $CONTENT_GAP
@@ -132,9 +157,74 @@ if [ -n "$GITHUB_ENV" ]; then
     echo "ARTICLE_WORDCOUNT=$ARTICLE_WORDCOUNT" >> "$GITHUB_ENV"
 fi
 
+# Update tracking file with new article
+echo -e "${YELLOW}Updating article tracking...${NC}"
+EXTRACTED_SLUG=$(echo "$ARTICLE_CONTENT" | grep "^slug:" | head -1 | sed 's/slug: "\(.*\)"/\1/' | sed "s/slug: '\(.*\)'/\1/" | sed 's/slug: //')
+FUNNEL_STAGE=$(echo "$ARTICLE_CONTENT" | grep "^funnel_stage:" | head -1 | sed 's/funnel_stage: "\(.*\)"/\1/' | sed "s/funnel_stage: '\(.*\)'/\1/" | sed 's/funnel_stage: //')
+CURRENT_DATE=$(date +%Y-%m-%d)
+
+# Add new article entry to tracking file
+TMP_FILE=$(mktemp)
+if [ -f "$TRACKING_FILE" ]; then
+    # Update existing file
+    jq --arg topic "$ARTICLE_TITLE" \
+       --arg slug "$EXTRACTED_SLUG" \
+       --arg segment "$ARTICLE_SEGMENT" \
+       --arg funnel "$FUNNEL_STAGE" \
+       --arg date "$CURRENT_DATE" \
+       --arg file "$ARTICLE_PATH" \
+       --arg wordcount "$ARTICLE_WORDCOUNT" \
+       '.articles += [{
+         topic: $topic,
+         slug: $slug,
+         segment: $segment,
+         funnel_stage: $funnel,
+         generated_date: $date,
+         status: "draft",
+         file: $file,
+         word_count: ($wordcount | tonumber),
+         notes: "Auto-generated - pending review"
+       }] |
+       .metadata.last_updated = $date |
+       .metadata.total_generated = (.articles | length)' \
+       "$TRACKING_FILE" > "$TMP_FILE" && mv "$TMP_FILE" "$ARTICLE_PATH/../generated-articles.json"
+else
+    # Create new tracking file
+    jq -n --arg topic "$ARTICLE_TITLE" \
+       --arg slug "$EXTRACTED_SLUG" \
+       --arg segment "$ARTICLE_SEGMENT" \
+       --arg funnel "$FUNNEL_STAGE" \
+       --arg date "$CURRENT_DATE" \
+       --arg file "$ARTICLE_PATH" \
+       --arg wordcount "$ARTICLE_WORDCOUNT" \
+       '{
+         articles: [{
+           topic: $topic,
+           slug: $slug,
+           segment: $segment,
+           funnel_stage: $funnel,
+           generated_date: $date,
+           status: "draft",
+           file: $file,
+           word_count: ($wordcount | tonumber),
+           notes: "Auto-generated - pending review"
+         }],
+         metadata: {
+           last_updated: $date,
+           total_generated: 1,
+           total_approved: 0,
+           total_published: 0
+         }
+       }' > "$TRACKING_FILE"
+fi
+
+echo -e "${GREEN}✓ Tracking file updated${NC}"
+
 echo -e "${GREEN}✓ Article generated successfully!${NC}"
 echo -e "Title: $ARTICLE_TITLE"
 echo -e "Segment: $ARTICLE_SEGMENT"
 echo -e "Keyword: $ARTICLE_KEYWORD"
 echo -e "Word Count: $ARTICLE_WORDCOUNT"
 echo -e "Saved to: $ARTICLE_PATH"
+echo -e ""
+echo -e "${YELLOW}Next step: Review the article and update status in generated-articles.json${NC}"
