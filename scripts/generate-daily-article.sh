@@ -38,20 +38,50 @@ RANK_MATH=$(cat "$PROJECT_DIR/rank-math-scoring-checklist.md")
 
 echo -e "${YELLOW}Calling Claude API to generate article...${NC}"
 
-# Create the API payload
-API_PAYLOAD=$(cat <<EOF
-{
-  "model": "claude-sonnet-4-20250514",
-  "max_tokens": 16000,
-  "messages": [
-    {
-      "role": "user",
-      "content": "You are generating a new article for VOTEGTR.com following the established content workflow.\n\nYour task:\n1. Review the content-gap-analysis.md below and identify the next CRITICAL or HIGH priority article from Phase 1 that hasn't been written yet\n2. Generate a complete, SEO-optimized article (2,500+ words) following ALL governance documents\n3. Follow the brand voice guidelines exactly - write like Sean Murphy, the veteran political consultant\n4. Include proper frontmatter with metadata in YAML format\n5. Ensure the article meets ALL SEO requirements from seo-writing-guidelines.md\n6. Use specific examples and demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness)\n\n=== CONTENT GAP ANALYSIS ===\n${CONTENT_GAP}\n\n=== SEO WRITING GUIDELINES ===\n${SEO_GUIDELINES}\n\n=== BRAND VOICE GUIDELINES ===\n${BRAND_VOICE}\n\n=== SUBJECT SELECTION METHODOLOGY ===\n${SUBJECT_SELECTION}\n\n=== FACTS ACCURACY REFERENCE ===\n${FACTS_REFERENCE}\n\n=== RANK MATH SCORING CHECKLIST ===\n${RANK_MATH}\n\nGenerate the complete article now in markdown format with frontmatter. Output ONLY the article content, nothing else."
-    }
-  ]
-}
-EOF
-)
+# Build the prompt content
+PROMPT="You are generating a new article for VOTEGTR.com following the established content workflow.
+
+Your task:
+1. Review the content-gap-analysis.md below and identify the next CRITICAL or HIGH priority article from Phase 1 that hasn't been written yet
+2. Generate a complete, SEO-optimized article (2,500+ words) following ALL governance documents
+3. Follow the brand voice guidelines exactly - write like Sean Murphy, the veteran political consultant
+4. Include proper frontmatter with metadata in YAML format
+5. Ensure the article meets ALL SEO requirements from seo-writing-guidelines.md
+6. Use specific examples and demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness)
+
+=== CONTENT GAP ANALYSIS ===
+$CONTENT_GAP
+
+=== SEO WRITING GUIDELINES ===
+$SEO_GUIDELINES
+
+=== BRAND VOICE GUIDELINES ===
+$BRAND_VOICE
+
+=== SUBJECT SELECTION METHODOLOGY ===
+$SUBJECT_SELECTION
+
+=== FACTS ACCURACY REFERENCE ===
+$FACTS_REFERENCE
+
+=== RANK MATH SCORING CHECKLIST ===
+$RANK_MATH
+
+Generate the complete article now in markdown format with frontmatter. Output ONLY the article content, nothing else."
+
+# Create the API payload using jq for proper JSON escaping
+API_PAYLOAD=$(jq -n \
+  --arg prompt "$PROMPT" \
+  '{
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 16000,
+    messages: [
+      {
+        role: "user",
+        content: $prompt
+      }
+    ]
+  }')
 
 # Call Claude API
 RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
