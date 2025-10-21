@@ -53,6 +53,8 @@ jobs:
           fi
 
       - name: Send email notification
+        if: false  # Email disabled - SendGrid account under review
+        continue-on-error: true
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
