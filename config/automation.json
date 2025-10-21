@@ -1,0 +1,41 @@
+{
+  "schedule": {
+    "enabled": true,
+    "time": "09:00",
+    "timezone": "America/New_York",
+    "frequency": "daily"
+  },
+  "article_generation": {
+    "articles_per_day": 1,
+    "respect_segment_distribution": true,
+    "target_distribution": {
+      "candidates": 0.45,
+      "consultants": 0.28,
+      "party_chairs": 0.17,
+      "current_customers": 0.10
+    }
+  },
+  "notification": {
+    "method": "email",
+    "recipient": "sean@spmstrategies.com",
+    "send_on_success": true,
+    "send_on_error": true
+  },
+  "git": {
+    "auto_commit": true,
+    "auto_push": true,
+    "commit_message_template": "Add new article draft: {title}"
+  },
+  "paths": {
+    "drafts_dir": "drafts",
+    "calendar_file": "content-calendar.md",
+    "governance_docs": [
+      "content-gap-analysis.md",
+      "content-subject-selection-methodology.md",
+      "seo-writing-guidelines.md",
+      "votegtr-brand-voice-guidelines.md",
+      "votegtr-facts-accuracy-reference.md",
+      "rank-math-scoring-checklist.md"
+    ]
+  }
+}
